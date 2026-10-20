@@ -38,14 +38,14 @@ let db = {
     curtidas: {},
     favoritos: {},
     postagens: {},
-    configuracoes: { canalPostagens: null }
+    configuracoes: {} // Objeto para salvar configurações por ID de servidor
 };
 
 if (fs.existsSync(dbPath)) {
     try {
         const dadosLidos = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
         db = { ...db, ...dadosLidos };
-        if (!db.configuracoes) db.configuracoes = { canalPostagens: null };
+        if (!db.configuracoes) db.configuracoes = {};
     } catch (e) {
         console.error('Erro ao ler o database.json, criando um novo.', e);
     }
@@ -431,7 +431,8 @@ client.on('interactionCreate', async interaction => {
         if (subcomando === 'canal_postagens') {
             const canal = interaction.options.getChannel('canal');
             
-            db.configuracoes.canalPostagens = canal.id;
+            // Salva o canal de forma independente para cada ID de servidor
+            db.configuracoes[interaction.guild.id] = canal.id;
             salvarDB();
 
             const embedSucesso = new EmbedBuilder()
@@ -704,8 +705,10 @@ client.on('interactionCreate', async interaction => {
 
         let canalAlvo = interaction.channel;
 
-        if (db.configuracoes.canalPostagens) {
-            const canalConfigurado = interaction.guild.channels.cache.get(db.configuracoes.canalPostagens);
+        // Verifica se há um canal configurado ESPECIFICAMENTE para este servidor
+        const canalConfiguradoId = db.configuracoes[interaction.guild.id];
+        if (canalConfiguradoId) {
+            const canalConfigurado = interaction.guild.channels.cache.get(canalConfiguradoId);
             if (canalConfigurado) {
                 canalAlvo = canalConfigurado;
             }
